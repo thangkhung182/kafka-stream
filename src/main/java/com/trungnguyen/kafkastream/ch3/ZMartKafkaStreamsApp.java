@@ -12,6 +12,7 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.Consumed;
+import org.apache.kafka.streams.kstream.Printed;
 import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.processor.WallclockTimestampExtractor;
 import org.apache.logging.log4j.LogManager;
@@ -58,6 +59,7 @@ public class ZMartKafkaStreamsApp {
         var patternKStream = purchaseKStream
                 .mapValues(p -> PurchasePattern.builder(p).build());
 
+        patternKStream.print(Printed.<String, PurchasePattern>toSysOut().withLabel("patterns"));
         patternKStream.to("patterns", Produced.with(stringSerde, purchasePatternSerde));
 
         // builds the reward processor
@@ -65,6 +67,7 @@ public class ZMartKafkaStreamsApp {
                 p -> RewardAccumulator.builder(p).build()
         );
 
+        rewardsKStream.print(Printed.<String, RewardAccumulator>toSysOut().withLabel("rewards"));
         rewardsKStream.to("rewards", Produced.with(stringSerde, rewardSerde));
 
         // builds the storage link, the topic used by the storage consumer
@@ -73,11 +76,11 @@ public class ZMartKafkaStreamsApp {
         // used only to produce data for this application, not typical usage
         MockDataProducer.producePurchaseData();
 
-        KafkaStreams kafkaStreams = new KafkaStreams(streamsBuilder.build(),streamsConfig);
+        var kafkaStreams = new KafkaStreams(streamsBuilder.build(),streamsConfig);
         logger.info("ZMart First Kafka Streams Application Started");
         kafkaStreams.start();
         try {
-            Thread.sleep(65000);
+            Thread.sleep(5000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
